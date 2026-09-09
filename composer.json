@@ -1,0 +1,56 @@
+{
+    "name": "zhylon/api-resources",
+    "description": "Opinionated helpers for building consistent, JSON:API-inspired API resource responses in Laravel.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["zhylon", "laravel", "api", "resources", "json-api"],
+    "homepage": "https://github.com/Zhylon/api-resources",
+    "support": {
+        "issues": "https://github.com/Zhylon/api-resources/issues",
+        "source": "https://github.com/Zhylon/api-resources"
+    },
+    "authors": [
+        {
+            "name": "TobyMaxham",
+            "homepage": "https://zhylon.net",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/contracts": "^12.0 || ^13.0",
+        "illuminate/http": "^12.0 || ^13.0",
+        "illuminate/support": "^12.0 || ^13.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.30",
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "pestphp/pest": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Zhylon\\ApiResources\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Zhylon\\ApiResources\\Tests\\": "tests/"
+        },
+        "classmap": [
+            "tests/Stubs"
+        ]
+    },
+    "scripts": {
+        "test": [
+            "./vendor/bin/pest tests/"
+        ]
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
