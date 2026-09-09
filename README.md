@@ -12,8 +12,7 @@ Small, opinionated helpers for building consistent, JSON:API-inspired API resour
 ## Requirements
 
 - PHP 8.2+
-- Laravel 12.x or 13.x, actively tested in CI (see the [test matrix](.github/workflows/tests.yml))
-- Laravel 10.x and 11.x are also allowed by `composer.json` and resolve cleanly, but are **not** covered by the test suite or CI — best-effort only. This is a deliberate, temporary widening for v0.2; support for 10.x/11.x will be dropped again in v1.0.
+- Laravel 12.x or 13.x
 
 ## Installation
 
