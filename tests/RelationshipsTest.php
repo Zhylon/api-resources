@@ -8,24 +8,7 @@ use Zhylon\ApiResources\Http\Resources\Relationship;
 use Zhylon\ApiResources\Tests\Fixtures\Eloquent\Tag;
 use Zhylon\ApiResources\Tests\Fixtures\PostResource;
 use Zhylon\ApiResources\Tests\Fixtures\UserResource;
-use Zhylon\ApiResources\Tests\Fixtures\Eloquent\Post;
 use Zhylon\ApiResources\Tests\Fixtures\Eloquent\User;
-
-function post(array $relations = []): Post
-{
-    $post = new Post(['id' => 1, 'title' => 'Hello', 'user_id' => 5]);
-
-    foreach ($relations as $name => $value) {
-        $post->setRelation($name, $value);
-    }
-
-    return $post;
-}
-
-function render(Post $post): array
-{
-    return (new PostResource($post))->resolve(request());
-}
 
 afterEach(function () {
     PostResource::$relationships = null;

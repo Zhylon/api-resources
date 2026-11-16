@@ -7,24 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - Unreleased
+
 ### Added
 
-- `relationships` parameter for `toApiResource()`. Rendered between `attributes` and `links`, and only
-  present when at least one relationship renders something.
-- `Relationship` builder: to-one/to-many resource linkage (with auto-detected or forced cardinality),
-  `self`/`related`/custom links (optionally with link meta), relationship meta, per-identifier meta
-  (e.g. pivot data), counts, polymorphic types via closures, custom id resolution, conditional rendering,
-  links-only relationships and lazy data. Missing (not loaded) relations are left out, loaded empty ones
-  render `data: null` / `data: []`.
-- `BuildsApiResource::relationship()` helper that reads loaded Eloquent relations (including dot-notation
-  nested relations) and the overridable `newRelationship()` factory for app-wide conventions.
+- **Relationships:** `relationships` parameter for `toApiResource()` and a fluent `Relationship` builder:
+  to-one/to-many resource linkage (auto-detected or forced cardinality), `self`/`related`/custom links
+  (optionally with link meta), relationship meta, per-identifier meta (e.g. pivot data), counts,
+  polymorphic types via closures, custom id resolution, conditional rendering, links-only relationships
+  and lazy data. Relations that aren't loaded are left out, loaded empty ones render `data: null` /
+  `data: []`. `BuildsApiResource::relationship()` reads loaded Eloquent relations (incl. dot notation),
+  `newRelationship()` is the factory for app-wide conventions.
+- **Included resources (compound documents):** `Relationship::resource()` renders related items through
+  their resource — identifiers take `id`/`type` from it, and the full objects are added to a top-level
+  `included` array, recursively, de-duplicated by `type` + `id` and without repeating primary data.
+  The resource class is detected automatically from `JsonResource` data. `included()` /
+  `withoutIncluded()` control it per relationship; `Relationship::maxDepth()` guards against cycles.
+- **Resource-level `links` and `meta`:** new `links` and `meta` parameters for `toApiResource()`.
+- **Top-level `meta` and `links`:** `withMeta()` / `withLinks()` on single resources and on
+  `ApiResourceCollection`, merged with pagination info and `additional()`.
+- **Sparse fieldsets:** `SparseFieldsets::enable()` (opt-in) limits `attributes` and `relationships` per
+  type via `?fields[type]=a,b`; custom parameter names and resolvers are supported.
+- **Error responses:** `ApiExceptionRenderer` (register via `$exceptions->render(...)`) renders validation,
+  authentication, authorization, not-found, other HTTP and server errors as `{ "errors": [...] }`, with
+  JSON pointers, rule codes, preserved HTTP headers and debug details only in debug mode. Customizable via
+  `when()`, `map()`, `pointerPrefix()`, `pointerUsing()`, `withRuleCodes()`, `debug()` and the
+  `ProvidesApiErrors` interface. `ApiError` and `ApiErrorResponse` can also be used directly.
 - `ResourceId` with the id resolution chain shared by resources and relationship identifiers, plus
   `ResourceId::resolveUsing()` for an app-wide resolver.
+- `Link` helper used for all links (`{ href }`, optionally with `meta`).
+- `Closure` values in `attributes` are evaluated when rendered (and skipped when filtered out by a
+  sparse fieldset).
 
 ### Changed
 
-- `BuildsApiResource::resolveResourceId()` now delegates to `ResourceId::resolve()`. Behaviour is unchanged
-  for objects. A `null` resource now resolves to a `null` id instead of throwing a `TypeError`.
+- **Breaking:** `ApiResourceCollection::toArray()` resolves its items eagerly, so `data` is a plain array
+  instead of a collection of resources. Required to build `included` before the response is encoded.
+- **Breaking:** `BuildsApiResource` now defines `with()`, `withMeta()`, `withLinks()`, `apiTopLevel()`,
+  `apiDocument()` and `apiIncludedResources()`. A resource that overrides `with()` has to merge
+  `$this->apiTopLevel($request)` into its result to keep `included` and top-level `meta`/`links`.
+- **Breaking:** `Closure` attribute values are evaluated instead of being serialized as `{}`.
+- **Breaking:** `BuildsApiResource::resolveResourceId()` delegates to `ResourceId::resolve()`. Behaviour is
+  unchanged for objects, but a `null` resource now resolves to a `null` id instead of throwing a `TypeError`.
 
 ## [1.0.0] - 2026-09-09
 
@@ -57,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covering both.
 
 [Unreleased]: https://github.com/Zhylon/api-resources/compare/v1.0.0...HEAD
+[2.0.0]: https://github.com/Zhylon/api-resources/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/Zhylon/api-resources/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/Zhylon/api-resources/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zhylon/api-resources/releases/tag/v0.1.0
