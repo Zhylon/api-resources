@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Link` helper used for all links (`{ href }`, optionally with `meta`).
 - `Closure` values in `attributes` are evaluated when rendered (and skipped when filtered out by a
   sparse fieldset).
+- **Laravel Boost:** package guidelines (`resources/boost/guidelines/core.blade.php`) and the upgrade skill
+  `zhylon-api-resources-upgrade`, installed via `php artisan boost:install` / `boost:update`.
+- `UPGRADING.md` with the 1.x → 2.0 upgrade guide, including a prompt for AI agents.
+- `SECURITY.md` with the vulnerability reporting process (security@zhylon.net) and the supported-versions policy.
+- `.gitattributes` keeping tests and tooling out of the dist archive.
 
 ### Changed
 

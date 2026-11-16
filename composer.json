@@ -7,7 +7,8 @@
     "homepage": "https://github.com/Zhylon/api-resources",
     "support": {
         "issues": "https://github.com/Zhylon/api-resources/issues",
-        "source": "https://github.com/Zhylon/api-resources"
+        "source": "https://github.com/Zhylon/api-resources",
+        "security": "https://github.com/Zhylon/api-resources/security/policy"
     },
     "authors": [
         {

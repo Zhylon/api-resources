@@ -1,8 +1,11 @@
-# Zhylon API-Resources
+[![Zhylon API-Resources][api-resources-image]][api-resources-edit-link]
 
-[![Latest Stable Version](http://poser.pugx.org/zhylon/api-resources/v)](https://packagist.org/packages/zhylon/api-resources)
-[![Tests](https://github.com/Zhylon/api-resources/actions/workflows/tests.yml/badge.svg)](https://github.com/Zhylon/api-resources/actions/workflows/tests.yml)
-[![License](http://poser.pugx.org/zhylon/api-resources/license)](https://packagist.org/packages/zhylon/api-resources)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/zhylon/api-resources.svg?style=flat-square)](https://packagist.org/packages/zhylon/api-resources)
+[![Tests](https://img.shields.io/github/actions/workflow/status/Zhylon/api-resources/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Zhylon/api-resources/actions/workflows/tests.yml)
+[![PHP Version](https://img.shields.io/packagist/dependency-v/zhylon/api-resources/php?style=flat-square)](https://packagist.org/packages/zhylon/api-resources)
+[![Laravel Version](https://img.shields.io/packagist/dependency-v/zhylon/api-resources/illuminate%2Fsupport?label=laravel&style=flat-square)](https://packagist.org/packages/zhylon/api-resources)
+[![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
+[![Total Downloads](https://img.shields.io/packagist/dt/zhylon/api-resources.svg?style=flat-square)](https://packagist.org/packages/zhylon/api-resources)
 
 Small, opinionated helpers for building consistent, JSON:API-inspired API responses in Laravel:
 
@@ -19,6 +22,8 @@ The package renders; **your app decides what to load** (e.g. based on an `?inclu
 - PHP 8.2+
 - Laravel 12.x or 13.x
 
+**Upgrading from 1.x?** Read the [upgrade guide](UPGRADING.md) first, or let your [AI agent do the upgrade](UPGRADING.md#upgrade-with-an-ai-agent).
+
 ## Installation
 
 ```bash
@@ -26,6 +31,10 @@ composer require zhylon/api-resources
 ```
 
 There is nothing to publish — the classes are used directly. Optional app-wide settings (id resolver, sparse fieldsets, exception renderer) are one-liners, shown below.
+
+### Laravel Boost
+
+The package ships [Laravel Boost](https://laravel.com/docs/boost) guidelines, so AI agents in your app build resources, relationships and error responses the way this package expects, and an upgrade skill for major versions. Run `php artisan boost:install` (or `boost:update`) after installing the package.
 
 ## Usage
 
@@ -373,14 +382,16 @@ return ApiErrorResponse::make(
 
 `ApiError` supports `id`, `status`, `code`, `title` (defaults to the HTTP status text), `detail`, `pointer()`/`parameter()`/`header()` (as `source`), `link()` and `meta()`. With several errors, the response status is their shared status, otherwise `400` for mixed 4xx and `500` for anything else — or set it via `status()`.
 
-## Upgrading from 1.x
+## Upgrading
 
-See the [changelog](CHANGELOG.md#200---unreleased) for the full list. In short:
+See [UPGRADING.md](UPGRADING.md). The breaking changes of 2.0 only affect code that overrides or extends the package — the output of existing resources stays the same.
 
-- `ApiResourceCollection::toArray()` resolves its items eagerly; `data` is a plain array, not a collection of resources.
-- `BuildsApiResource` now defines `with()`, `withMeta()`, `withLinks()`, `apiTopLevel()`, `apiDocument()` and `apiIncludedResources()`. If your resource overrides `with()`, merge `$this->apiTopLevel($request)` into its result.
-- `Closure` attribute values are now evaluated instead of being serialized as `{}`.
-- A `null` resource now resolves to a `null` id instead of throwing a `TypeError`.
+## Security
+
+- **Authorization is up to your app.** Everything that is loaded is rendered — in `relationships` and in `included`. Check access before you load a relation (or use `Relationship::when()`), and only allow known values for `?include=`.
+- **Sparse fieldsets are no access control.** They only shape the output; hide sensitive attributes in the resource itself.
+- **Error responses don't leak internals** outside debug mode: server errors have no message, not-found errors don't contain the model class. With `app.debug` on, they contain messages, files and stack traces — never enable it in production.
+- **Laravel Octane:** supported. The global settings (`ResourceId::resolveUsing()`, `SparseFieldsets::enable()`, `Relationship::maxDepth()`) are meant to be set once at boot and keep no request state.
 
 ## Testing
 
@@ -388,6 +399,23 @@ See the [changelog](CHANGELOG.md#200---unreleased) for the full list. In short:
 composer test
 ```
 
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+
+## Security Vulnerabilities
+
+Please review [our security policy](SECURITY.md) on how to report security vulnerabilities — in short: use GitHub's private vulnerability reporting or mail [security@zhylon.net](mailto:security@zhylon.net), not the issue tracker.
+
+## Credits
+
+- [TobyMaxham](https://github.com/TobyMaxham)
+- [All Contributors](../../contributors)
+
 ## License
 
 The MIT License (MIT). See [LICENSE](LICENSE) for more information.
+
+
+[api-resources-image]: https://socialify.git.ci/Zhylon/api-resources/image?description=1&font=Raleway&issues=1&language=1&owner=1&pattern=Charlie%20Brown&pulls=1&stargazers=1&theme=Light
+[api-resources-edit-link]: https://socialify.git.ci/Zhylon/api-resources?description=1&font=Raleway&issues=1&language=1&owner=1&pattern=Charlie%20Brown&pulls=1&stargazers=1&theme=Light
