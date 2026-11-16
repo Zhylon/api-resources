@@ -5,9 +5,7 @@ All notable changes to `zhylon/api-resources` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-11-17
 
 ### Added
 
@@ -100,8 +98,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Laravel 12.x and 13.x support on PHP 8.2+, with a Pest test suite and a GitHub Actions matrix
   covering both.
 
-[Unreleased]: https://github.com/Zhylon/api-resources/compare/v1.0.0...HEAD
-[2.0.0]: https://github.com/Zhylon/api-resources/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Zhylon/api-resources/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Zhylon/api-resources/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/Zhylon/api-resources/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/Zhylon/api-resources/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zhylon/api-resources/releases/tag/v0.1.0
