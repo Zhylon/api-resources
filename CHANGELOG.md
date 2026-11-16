@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `relationships` parameter for `toApiResource()`. Rendered between `attributes` and `links`, and only
+  present when at least one relationship renders something.
+- `Relationship` builder: to-one/to-many resource linkage (with auto-detected or forced cardinality),
+  `self`/`related`/custom links (optionally with link meta), relationship meta, per-identifier meta
+  (e.g. pivot data), counts, polymorphic types via closures, custom id resolution, conditional rendering,
+  links-only relationships and lazy data. Missing (not loaded) relations are left out, loaded empty ones
+  render `data: null` / `data: []`.
+- `BuildsApiResource::relationship()` helper that reads loaded Eloquent relations (including dot-notation
+  nested relations) and the overridable `newRelationship()` factory for app-wide conventions.
+- `ResourceId` with the id resolution chain shared by resources and relationship identifiers, plus
+  `ResourceId::resolveUsing()` for an app-wide resolver.
+
+### Changed
+
+- `BuildsApiResource::resolveResourceId()` now delegates to `ResourceId::resolve()`. Behaviour is unchanged
+  for objects. A `null` resource now resolves to a `null` id instead of throwing a `TypeError`.
+
 ## [1.0.0] - 2026-09-09
 
 ### Removed
