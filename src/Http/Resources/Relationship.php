@@ -39,6 +39,8 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
  *
  * Every step is a protected method, so app-specific conventions can live in a subclass — return it
  * from `BuildsApiResource::newRelationship()` to use it everywhere.
+ *
+ * @phpstan-consistent-constructor
  */
 class Relationship
 {
@@ -54,11 +56,19 @@ class Relationship
 
     protected ?Closure $idResolver = null;
 
+    /**
+     * @var array<string, mixed>|Closure|null
+     */
     protected array|Closure|null $identifierMeta = null;
 
-    /** @var array<string, string|array|Closure|null> */
+    /**
+     * @var array<string, string|array<string, mixed>|Closure|null>
+     */
     protected array $links = [];
 
+    /**
+     * @var array<string, mixed>|Closure
+     */
     protected array|Closure $meta = [];
 
     protected ?string $countKey = null;
@@ -79,7 +89,9 @@ class Relationship
 
     protected bool|Closure $include = true;
 
-    /** @var list<array{resource: JsonResource, document: array}> */
+    /**
+     * @var list<array{resource: JsonResource, document: array<string, mixed>}>
+     */
     protected array $rendered = [];
 
     public function __construct(mixed $data = new MissingValue, string|Closure|null $type = null, ?bool $many = null)
@@ -110,6 +122,8 @@ class Relationship
 
     /**
      * A relationship without resource linkage, e.g. only a `related` link for a large to-many relation.
+     *
+     * @param  array<string, string|array<string, mixed>|Closure|null>  $links
      */
     public static function linksOnly(array $links = []): static
     {
@@ -207,6 +221,8 @@ class Relationship
     /**
      * Meta added to every resource identifier, e.g. pivot data:
      * `->identifierMeta(fn ($tag) => ['position' => $tag->pivot->position])`.
+     *
+     * @param  array<string, mixed>|Closure  $meta
      */
     public function identifierMeta(array|Closure $meta): static
     {
@@ -218,6 +234,9 @@ class Relationship
     /**
      * Adds a link. `$href` may be a string, a ready-made link array, a `Closure` returning either, or
      * `null` (the link is then dropped). With `$meta`, the link is rendered as `{ href, meta }`.
+     *
+     * @param  string|array<string, mixed>|Closure|null  $href
+     * @param  array<string, mixed>  $meta
      */
     public function link(string $name, string|array|Closure|null $href, array $meta = []): static
     {
@@ -229,7 +248,7 @@ class Relationship
     }
 
     /**
-     * @param  array<string, string|array|Closure|null>  $links
+     * @param  array<string, string|array<string, mixed>|Closure|null>  $links
      */
     public function links(array $links): static
     {
@@ -240,11 +259,19 @@ class Relationship
         return $this;
     }
 
+    /**
+     * @param  string|array<string, mixed>|Closure|null  $href
+     * @param  array<string, mixed>  $meta
+     */
     public function self(string|array|Closure|null $href, array $meta = []): static
     {
         return $this->link('self', $href, $meta);
     }
 
+    /**
+     * @param  string|array<string, mixed>|Closure|null  $href
+     * @param  array<string, mixed>  $meta
+     */
     public function related(string|array|Closure|null $href, array $meta = []): static
     {
         return $this->link('related', $href, $meta);
@@ -252,6 +279,8 @@ class Relationship
 
     /**
      * Relationship-level meta. Merges with previous calls; a `Closure` is evaluated when rendered.
+     *
+     * @param  array<string, mixed>|Closure  $meta
      */
     public function meta(array|Closure $meta): static
     {
@@ -317,6 +346,8 @@ class Relationship
 
     /**
      * Renders the relationship object, or `null` if it should be omitted.
+     *
+     * @return array<string, mixed>|null
      */
     public function resolve(?Request $request = null): ?array
     {
@@ -328,6 +359,11 @@ class Relationship
 
         $data = $this->unwrap(value($this->data));
         $missing = $data instanceof MissingValue;
+
+        // Generators and other one-shot iterables are read once, so they can be rendered *and* counted.
+        if ($data instanceof Traversable && ! is_countable($data)) {
+            $data = iterator_to_array($data, false);
+        }
 
         if ($missing && $this->omitWhenMissing) {
             return null;
@@ -358,7 +394,7 @@ class Relationship
     /**
      * The related resources rendered during the last `resolve()` that belong into `included`.
      *
-     * @return list<array{resource: JsonResource, document: array}>
+     * @return list<array{resource: JsonResource, document: array<string, mixed>}>
      */
     public function includedResources(): array
     {
@@ -367,6 +403,8 @@ class Relationship
 
     /**
      * The related items (models, objects, ids …) as a collection. Empty when the data is missing.
+     *
+     * @return Collection<array-key, mixed>
      */
     public function relatedItems(): Collection
     {
@@ -376,7 +414,11 @@ class Relationship
             return new Collection;
         }
 
-        return $this->isMany($data) ? Collection::make($data)->values() : new Collection([$data]);
+        if ($this->isMany($data) && is_iterable($data)) {
+            return (new Collection($data))->values();
+        }
+
+        return new Collection([$data]);
     }
 
     /**
@@ -394,13 +436,12 @@ class Relationship
         }
 
         if ($data instanceof ResourceCollection) {
-            if (is_string($data->collects) && class_exists($data->collects)) {
+            if (is_a($data->collects, JsonResource::class, true)) {
                 $this->detectedResource ??= $data->collects;
             }
 
-            return null === $data->collection
-                ? $this->unwrap($data->resource)
-                : $data->collection->map(fn ($item) => $this->unwrap($item));
+            // Missing collections were handled above, so `collection` is set here.
+            return ($data->collection ?? new Collection)->map(fn ($item) => $this->unwrap($item));
         }
 
         if ($data instanceof JsonResource) {
@@ -421,6 +462,9 @@ class Relationship
         return $data instanceof Traversable || (is_array($data) && array_is_list($data));
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     protected function resolveOne(mixed $item, Request $request): ?array
     {
         if ($item instanceof Traversable || (is_array($item) && array_is_list($item))) {
@@ -430,29 +474,33 @@ class Relationship
         return null === $item ? null : $this->identifier($item, $request);
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     protected function resolveMany(mixed $items, Request $request): array
     {
         if (null === $items) {
             return [];
         }
 
-        return Collection::make(is_iterable($items) ? $items : [$items])
+        return array_values(Collection::make(is_iterable($items) ? $items : [$items])
             ->map(fn ($item) => $this->unwrap($item))
             ->reject(fn ($item) => null === $item || $item instanceof MissingValue)
             ->map(fn ($item) => $this->identifier($item, $request))
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
      * Builds a single resource identifier object: `{ id, type, meta? }`.
+     *
+     * @return array<string, mixed>
      */
     protected function identifier(mixed $item, Request $request): array
     {
         $document = $this->renderRelated($item, $request);
 
         $identifier = [
-            'id'   => $this->resolveId($item, $document),
+            'id'   => ResourceId::normalize($this->resolveId($item, $document)),
             'type' => $this->resolveType($item, $document),
         ];
 
@@ -465,6 +513,8 @@ class Relationship
 
     /**
      * Renders the item through the related resource (if one is known) and remembers it for `included`.
+     *
+     * @return array<string, mixed>|null
      */
     protected function renderRelated(mixed $item, Request $request): ?array
     {
@@ -505,6 +555,9 @@ class Relationship
         return $resource instanceof Closure ? $resource($item) : new $resource($item);
     }
 
+    /**
+     * @param  array<string, mixed>|null  $document
+     */
     protected function resolveId(mixed $item, ?array $document): string|int|null
     {
         if (null !== $this->idResolver) {
@@ -514,6 +567,9 @@ class Relationship
         return $document['id'] ?? ResourceId::resolve($item);
     }
 
+    /**
+     * @param  array<string, mixed>|null  $document
+     */
     protected function resolveType(mixed $item, ?array $document): string
     {
         $type = $this->type instanceof Closure ? ($this->type)($item) : $this->type;
@@ -529,6 +585,9 @@ class Relationship
         return $type;
     }
 
+    /**
+     * @return array<string, array<string, mixed>>
+     */
     protected function resolveLinks(): array
     {
         $links = [];
@@ -547,12 +606,18 @@ class Relationship
     /**
      * Formats a link the same way as the resource's own links (`{ "href": "..." }`).
      * Override to change the link format, e.g. to plain strings.
+     *
+     * @param  string|array<string, mixed>|null  $href
+     * @return array<string, mixed>|null
      */
     protected function formatLink(string|array|null $href): ?array
     {
         return Link::format($href);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function resolveMeta(mixed $data, bool $missing, bool $many): array
     {
         $meta = value($this->meta);
@@ -561,7 +626,11 @@ class Relationship
             $count = value($this->count);
 
             if (null === $count && $many && ! $missing) {
-                $count = null === $data ? 0 : Collection::make(is_iterable($data) ? $data : [$data])->count();
+                $count = match (true) {
+                    null === $data      => 0,
+                    is_countable($data) => count($data),
+                    default             => 1,
+                };
             }
 
             if (null !== $count) {

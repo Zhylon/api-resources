@@ -19,6 +19,10 @@ use Symfony\Component\HttpFoundation\Response;
  * ```
  *
  * Empty members are omitted. `status` is rendered as a string, as the JSON:API spec requires.
+ *
+ * @implements Arrayable<string, mixed>
+ *
+ * @phpstan-consistent-constructor
  */
 class ApiError implements Arrayable, JsonSerializable
 {
@@ -30,10 +34,19 @@ class ApiError implements Arrayable, JsonSerializable
 
     protected ?string $detail;
 
+    /**
+     * @var array<string, string>
+     */
     protected array $source = [];
 
+    /**
+     * @var array<string, array<string, mixed>>
+     */
     protected array $links = [];
 
+    /**
+     * @var array<string, mixed>
+     */
     protected array $meta = [];
 
     public function __construct(protected int $status = 500, ?string $title = null, ?string $detail = null)
@@ -122,6 +135,9 @@ class ApiError implements Arrayable, JsonSerializable
 
     /**
      * Adds a link, e.g. `about` (documentation of this occurrence) or `type` (of this kind of error).
+     *
+     * @param  string|array<string, mixed>|null  $href
+     * @param  array<string, mixed>  $meta
      */
     public function link(string $name, string|array|null $href, array $meta = []): static
     {
@@ -132,6 +148,9 @@ class ApiError implements Arrayable, JsonSerializable
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $meta
+     */
     public function meta(array $meta): static
     {
         $this->meta = [...$this->meta, ...$meta];
@@ -139,6 +158,9 @@ class ApiError implements Arrayable, JsonSerializable
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return array_filter([
@@ -153,6 +175,9 @@ class ApiError implements Arrayable, JsonSerializable
         ], fn ($value) => null !== $value && [] !== $value);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function jsonSerialize(): array
     {
         return $this->toArray();

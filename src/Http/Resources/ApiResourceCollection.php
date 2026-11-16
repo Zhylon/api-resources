@@ -6,24 +6,33 @@ namespace Zhylon\ApiResources\Http\Resources;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\MissingValue;
+use Illuminate\Support\Collection;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\PotentiallyMissing;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ApiResourceCollection extends AnonymousResourceCollection
 {
-    /** @var list<array|Closure> */
+    /**
+     * @var list<array<string, mixed>|Closure>
+     */
     protected array $apiTopLevelMeta = [];
 
+    /**
+     * @var array<string, string|array<string, mixed>|Closure|PotentiallyMissing|null>
+     */
     protected array $apiTopLevelLinks = [];
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
         // Items are resolved eagerly (instead of during JSON encoding), so their relationships are
         // known when `with()` builds the top-level `included` array.
         return [
-            'data' => $this->collection
+            'data' => ($this->collection ?? new Collection)
                 ->map(fn ($item) => $item instanceof JsonResource ? $item->resolve($request) : $item)
                 ->all(),
         ];
@@ -31,6 +40,8 @@ class ApiResourceCollection extends AnonymousResourceCollection
 
     /**
      * Adds top-level `meta`, merged with the pagination meta. A `Closure` is evaluated when rendered.
+     *
+     * @param  array<string, mixed>|Closure  $meta
      */
     public function withMeta(array|Closure $meta): static
     {
@@ -42,7 +53,7 @@ class ApiResourceCollection extends AnonymousResourceCollection
     /**
      * Adds top-level `links` (formatted as `{ href }`), merged with the pagination links.
      *
-     * @param  array<string, string|array|Closure|MissingValue|null>  $links
+     * @param  array<string, string|array<string, mixed>|Closure|PotentiallyMissing|null>  $links
      */
     public function withLinks(array $links): static
     {
@@ -54,21 +65,32 @@ class ApiResourceCollection extends AnonymousResourceCollection
     /**
      * Adds `included`, `links` and `meta`. If you override `with()` in a subclass, merge
      * `$this->apiTopLevel($request)` into its result to keep them.
+     *
+     * @param  Request  $request
+     * @return array<string, mixed>
      */
     public function with($request)
     {
         return array_merge_recursive(parent::with($request), $this->apiTopLevel($request));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function apiTopLevel(Request $request): array
     {
         return TopLevel::members(
-            CompoundDocument::included($this->collection),
+            CompoundDocument::included($this->collection ?? []),
             $this->apiTopLevelLinks,
             $this->apiTopLevelMeta,
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $paginated
+     * @param  array<string, mixed>  $default
+     * @return array<string, mixed>
+     */
     public function paginationInformation(Request $request, array $paginated, array $default): array
     {
         if ($this->resource instanceof CursorPaginator) {

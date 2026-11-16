@@ -17,7 +17,7 @@ abstract class TestCase extends Orchestra
     {
         PostResource::$relationships = null;
         UserResource::$relationships = null;
-        ResourceId::resolveUsing(null);
+        ResourceId::flush();
         SparseFieldsets::flush();
         Relationship::maxDepth(16);
 

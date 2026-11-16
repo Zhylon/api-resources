@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Zhylon\ApiResources\Http\Resources;
 
 use Closure;
+use Illuminate\Http\Resources\PotentiallyMissing;
 
 /**
  * Assembles the extra top-level members of a response (`included`, `links`, `meta`).
@@ -14,9 +15,10 @@ use Closure;
 final class TopLevel
 {
     /**
-     * @param  list<array>  $included
-     * @param  array<string, string|array|Closure|null>  $links
-     * @param  list<array|Closure>  $meta
+     * @param  list<array<string, mixed>>  $included
+     * @param  array<string, string|array<string, mixed>|Closure|PotentiallyMissing|null>  $links
+     * @param  list<array<string, mixed>|Closure>  $meta
+     * @return array<string, mixed>
      */
     public static function members(array $included, array $links, array $meta): array
     {

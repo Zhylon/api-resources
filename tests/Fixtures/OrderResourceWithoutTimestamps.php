@@ -8,10 +8,16 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Zhylon\ApiResources\Http\Resources\BuildsApiResource;
 
+/**
+ * @property string $status
+ */
 class OrderResourceWithoutTimestamps extends JsonResource
 {
     use BuildsApiResource;
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
         return $this->toApiResource(

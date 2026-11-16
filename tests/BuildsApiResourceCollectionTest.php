@@ -37,13 +37,11 @@ it('wraps each item through toApiResource and preserves pagination meta', functi
             'id'         => 1,
             'type'       => 'order',
             'attributes' => ['status' => 'paid'],
-            'links'      => ['self' => ['href' => null]],
         ],
         [
             'id'         => 2,
             'type'       => 'order',
             'attributes' => ['status' => 'pending'],
-            'links'      => ['self' => ['href' => null]],
         ],
     ])->and($response['meta'])->toMatchArray([
         'total'        => 2,

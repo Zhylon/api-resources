@@ -330,3 +330,11 @@ it('allows a custom Relationship subclass via newRelationship()', function () {
         'meta' => ['app' => true],
     ]);
 });
+
+it('treats a single model as one item when many() is forced', function () {
+    $relationship = Relationship::make(new User(['id' => 5, 'name' => 'Ada']), 'user')->many();
+
+    expect($relationship->relatedItems()->all())->toHaveCount(1)
+        ->and($relationship->relatedItems()->first())->toBeInstanceOf(User::class)
+        ->and($relationship->resolve())->toBe(['data' => [['id' => 'user-5', 'type' => 'user']]]);
+});

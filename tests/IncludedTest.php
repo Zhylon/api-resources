@@ -17,7 +17,7 @@ it('takes id and type from the related resource and adds it to included', functi
 
     expect($response['data']['relationships']['author'])->toBe(['data' => ['id' => 'user-5', 'type' => 'user']])
         ->and($response['included'])->toBe([
-            ['id' => 'user-5', 'type' => 'user', 'attributes' => ['name' => 'Ada'], 'links' => ['self' => ['href' => null]]],
+            ['id' => 'user-5', 'type' => 'user', 'attributes' => ['name' => 'Ada']],
         ]);
 });
 

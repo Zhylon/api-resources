@@ -15,7 +15,7 @@ final class CompoundDocument
 {
     /**
      * @param  iterable<mixed>  $primary  the resources in the response's primary `data`, after they were resolved
-     * @return list<array>
+     * @return list<array<string, mixed>>
      */
     public static function included(iterable $primary): array
     {
@@ -23,7 +23,7 @@ final class CompoundDocument
         $queue = [];
 
         foreach ($primary as $resource) {
-            if (! is_object($resource) || ! method_exists($resource, 'apiIncludedResources')) {
+            if (! is_object($resource) || ! method_exists($resource, 'apiIncludedResources') || ! method_exists($resource, 'apiDocument')) {
                 continue;
             }
 
@@ -49,7 +49,7 @@ final class CompoundDocument
 
             $included[] = $document;
 
-            if (method_exists($resource, 'apiIncludedResources')) {
+            if (is_object($resource) && method_exists($resource, 'apiIncludedResources')) {
                 array_push($queue, ...$resource->apiIncludedResources());
             }
         }
@@ -57,6 +57,9 @@ final class CompoundDocument
         return $included;
     }
 
+    /**
+     * @param  array<string, mixed>|null  $document
+     */
     private static function key(?array $document): ?string
     {
         if (! isset($document['type'], $document['id'])) {

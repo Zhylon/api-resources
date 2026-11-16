@@ -91,14 +91,23 @@ produces:
 |-----------------|-----------------------|-------------------------------------------------------------------------------------|
 | `type`          | `string`              | The JSON:API-style resource type, e.g. `'order'`                                    |
 | `attributes`    | `array`               | The resource's own attributes. `Closure` values are only evaluated when rendered   |
-| `selfHref`      | `?string`             | Value for `links.self.href`                                                         |
-| `timestamps`    | `bool`                | Appends `created_at`/`updated_at` (as ISO-8601 strings) to `attributes`             |
+| `selfHref`      | `?string`             | Value for `links.self.href`. Without it there's no `self` link (and no `links` key if nothing else is set) |
+| `timestamps`    | `bool\|list<string>`  | `true` appends `created_at`/`updated_at` (as ISO-8601 strings) to `attributes`, a list renders any date attributes, e.g. `['created_at', 'deployed_at', 'deleted_at']` |
 | `id`            | `string\|int\|null`   | Overrides automatic id resolution (see below)                                       |
 | `relationships` | `array`               | See [Relationships](#relationships)                                                 |
 | `links`         | `array`               | More links next to `self`, e.g. `['dashboard' => $url]`. `null` links are dropped   |
 | `meta`          | `array\|Closure`      | Resource-level meta, e.g. permissions: `['can' => ['update' => ...]]`               |
 
 Laravel's conditional helpers work everywhere (`$this->when(...)`, `$this->whenLoaded(...)` …).
+
+Date attributes listed in `timestamps` are formatted by `formatTimestamp()` (ISO-8601 / ATOM for `DateTimeInterface` values, everything else as-is). Override it in your resource (or a base resource) for another format:
+
+```php
+protected function formatTimestamp(mixed $value): mixed
+{
+    return $value instanceof DateTimeInterface ? $value->format('Y-m-d H:i:s') : $value;
+}
+```
 
 #### Resolving the `id`
 
@@ -116,6 +125,12 @@ To change id resolution app-wide (for resources *and* relationship identifiers),
 use Zhylon\ApiResources\Http\Resources\ResourceId;
 
 ResourceId::resolveUsing(fn ($resource) => $resource instanceof HasUuid ? $resource->uuid : null);
+```
+
+JSON:API requires ids to be strings. Integer ids (e.g. plain primary keys) stay integers by default, because changing that changes your API output. To render all resource and relationship ids as strings (`7` → `"7"`):
+
+```php
+ResourceId::castToString();
 ```
 
 For full custom control of a single resource, override `resolveResourceId()` in your resource class:
@@ -384,7 +399,7 @@ return ApiErrorResponse::make(
 
 ## Upgrading
 
-See [UPGRADING.md](UPGRADING.md). The breaking changes of 2.0 only affect code that overrides or extends the package — the output of existing resources stays the same.
+See [UPGRADING.md](UPGRADING.md). The only change to the output of existing resources in 2.0: resources without `selfHref` no longer render `"links": { "self": { "href": null } }`. All other breaking changes only affect code that overrides or extends the package.
 
 ## Security
 
@@ -396,7 +411,11 @@ See [UPGRADING.md](UPGRADING.md). The breaking changes of 2.0 only affect code t
 ## Testing
 
 ```bash
-composer test
+composer test           # Pest
+composer test-coverage  # Pest with coverage, requires 100 %
+composer analyse        # PHPStan (Larastan, level 8)
+composer lint           # Pint --test + PHPStan
+composer format         # Pint
 ```
 
 ## Changelog

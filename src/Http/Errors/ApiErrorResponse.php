@@ -15,6 +15,8 @@ use Illuminate\Contracts\Support\Responsable;
  *     ApiError::make(409, 'The site is locked.')->code('site_locked'),
  * );
  * ```
+ *
+ * @phpstan-consistent-constructor
  */
 class ApiErrorResponse implements Responsable
 {
@@ -23,8 +25,14 @@ class ApiErrorResponse implements Responsable
 
     protected ?int $status = null;
 
+    /**
+     * @var array<string, mixed>
+     */
     protected array $meta = [];
 
+    /**
+     * @var array<string, string|list<string>>
+     */
     protected array $headers = [];
 
     public function __construct(ApiError ...$errors)
@@ -54,6 +62,9 @@ class ApiErrorResponse implements Responsable
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $meta
+     */
     public function meta(array $meta): static
     {
         $this->meta = [...$this->meta, ...$meta];
@@ -61,6 +72,9 @@ class ApiErrorResponse implements Responsable
         return $this;
     }
 
+    /**
+     * @param  array<string, string|list<string>>  $headers
+     */
     public function headers(array $headers): static
     {
         $this->headers = [...$this->headers, ...$headers];
@@ -96,6 +110,9 @@ class ApiErrorResponse implements Responsable
         };
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $payload = [

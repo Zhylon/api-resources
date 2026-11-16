@@ -93,7 +93,9 @@ final class SparseFieldsets
     /**
      * Keeps only the requested keys of `$members`. `null` fields means "keep everything".
      *
+     * @param  array<string, mixed>  $members
      * @param  list<string>|null  $fields
+     * @return array<string, mixed>
      */
     public static function filter(array $members, ?array $fields): array
     {

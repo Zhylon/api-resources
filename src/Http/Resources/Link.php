@@ -14,6 +14,10 @@ final class Link
 {
     /**
      * `$href` may be a URL string, a ready-made link array (passed through), or `null`.
+     *
+     * @param  string|array<string, mixed>|null  $href
+     * @param  array<string, mixed>  $meta
+     * @return array<string, mixed>|null
      */
     public static function format(string|array|null $href, array $meta = []): ?array
     {
@@ -32,7 +36,8 @@ final class Link
      * Formats a map of links. Values may be strings, link arrays, `Closure`s returning either, or
      * `null`/`MissingValue` — those links are dropped.
      *
-     * @param  array<string, string|array|Closure|PotentiallyMissing|null>  $links
+     * @param  array<string, string|array<string, mixed>|Closure|PotentiallyMissing|null>  $links
+     * @return array<string, array<string, mixed>>
      */
     public static function formatAll(array $links): array
     {

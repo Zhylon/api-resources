@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Zhylon\ApiResources\Http\Resources\BuildsApiResource;
 
+/**
+ * @property string $name
+ */
 class UserResource extends JsonResource
 {
     use BuildsApiResource;
@@ -20,6 +23,9 @@ class UserResource extends JsonResource
         static::$relationships = $relationships;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
         return $this->toApiResource(

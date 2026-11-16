@@ -1,6 +1,6 @@
 # From 1.x to 2.0
 
-Version 2.0 adds relationships, included resources, resource-level and top-level `links`/`meta`, sparse fieldsets and error responses. The output of existing resources does not change — the breaking changes only affect code that overrides or extends the package. Most apps only need the checklist.
+Version 2.0 adds relationships, included resources, resource-level and top-level `links`/`meta`, sparse fieldsets and error responses. There's exactly one change to the output of existing resources: [no more `"self": { "href": null }`](#no-more-empty-self-links). All other breaking changes only affect code that overrides or extends the package. Most apps only need the checklist.
 
 ## Upgrade with an AI agent
 
@@ -21,13 +21,28 @@ Always review the changes before you deploy them.
 ## Checklist
 
 1. Run `composer require zhylon/api-resources:^2.0`.
-2. Search for resources using `BuildsApiResource` that override **`with()`** and merge `$this->apiTopLevel($request)` (see [below](#with-is-defined-by-the-trait)).
-3. Search for classes extending **`ApiResourceCollection`** that override `toArray()` or `with()`, or read `data` as a collection.
-4. Search for **method name collisions** in your resources (see [list](#new-methods-in-buildsapiresource)).
-5. Search for **`Closure` values in `attributes`** of `toApiResource()`.
-6. Run your tests.
+2. Search for **`toApiResource()` calls without `selfHref`** and check whether API clients or tests rely on `links.self.href` being `null` (see [below](#no-more-empty-self-links)).
+3. Search for resources using `BuildsApiResource` that override **`with()`** and merge `$this->apiTopLevel($request)` (see [below](#with-is-defined-by-the-trait)).
+4. Search for classes extending **`ApiResourceCollection`** that override `toArray()` or `with()`, or read `data` as a collection.
+5. Search for **method name collisions** in your resources (see [list](#new-methods-in-buildsapiresource)).
+6. Search for **`Closure` values in `attributes`** of `toApiResource()`.
+7. Run your tests.
 
 Requirements are unchanged: PHP 8.2+, Laravel 12 or 13.
+
+## No more empty `self` links
+
+Without `selfHref`, 1.x rendered a `self` link with a `null` href. 2.0 leaves it out, and leaves out `links` entirely if no other links are set:
+
+```json
+// 1.x
+{ "id": 1, "type": "order", "attributes": {...}, "links": { "self": { "href": null } } }
+
+// 2.0
+{ "id": 1, "type": "order", "attributes": {...} }
+```
+
+Clients that read `links.self.href` without checking for its existence break. Either pass a `selfHref` (recommended, it's useful for clients anyway), or check your clients and tests. This also applies to related resources in `included`.
 
 ## `with()` is defined by the trait
 
@@ -78,7 +93,7 @@ Properties: `$apiIncluded`, `$apiDocument`, `$apiTopLevelMeta`, `$apiTopLevelLin
 
 If your resources already have methods with these names, your methods win over the trait. Rename them, if they do something else.
 
-`toApiResource()` got the new parameters `relationships`, `links` and `meta`. Calls with positional or named arguments keep working.
+`toApiResource()` got the new parameters `relationships`, `links` and `meta`, and `timestamps` also accepts a list of attributes. Calls with positional or named arguments keep working. The trait also got the protected method `formatTimestamp()`.
 
 ## Optional: use the new features
 
@@ -88,3 +103,5 @@ None of these are required, but they replace code many apps wrote by hand:
 - **`additional(['included' => ...])`** → `->resource(SiteResource::class)` on the relationship.
 - **Custom JSON error handling** in `bootstrap/app.php` → `$exceptions->render(new ApiExceptionRenderer)`. This changes the error format of your API, so check your API clients first.
 - **`?fields[type]=...` handling** → `SparseFieldsets::enable()`.
+- **String ids** as required by JSON:API → `ResourceId::castToString()`. **Changes the type of integer ids for all API clients.**
+- **Hand-formatted date attributes** (`deleted_at`, `deployed_at` …) → `timestamps: ['created_at', 'updated_at', 'deleted_at']`.

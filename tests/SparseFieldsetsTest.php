@@ -34,7 +34,7 @@ it('limits attributes and relationships per type', function () {
     expect($response['data']['attributes'])->toBe([])
         ->and(array_keys($response['data']['relationships']))->toBe(['author'])
         ->and($response['included'][0]['attributes'])->toBe([])
-        ->and($response['included'][0])->toHaveKeys(['id', 'type', 'links']);
+        ->and($response['included'][0])->toHaveKeys(['id', 'type']);
 });
 
 it('leaves types without a fieldset unrestricted', function () {

@@ -11,6 +11,9 @@ use Zhylon\ApiResources\Http\Resources\BuildsApiResource;
 
 /**
  * Renders whatever relationships the test hands in via `using()`, so each test can describe its case inline.
+ *
+ * @property int $id
+ * @property string $title
  */
 class PostResource extends JsonResource
 {
@@ -23,6 +26,9 @@ class PostResource extends JsonResource
         static::$relationships = $relationships;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
         return $this->toApiResource(

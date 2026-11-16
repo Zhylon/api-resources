@@ -158,7 +158,8 @@ class ApiExceptionRenderer
         $response = ApiErrorResponse::make()->status($e->status);
 
         foreach ($e->errors() as $field => $messages) {
-            $rules = array_keys($failed[$field] ?? []);
+            // Rule names are array keys; normalize them back to strings.
+            $rules = array_map(strval(...), array_keys($failed[$field] ?? []));
             $aligned = count($rules) === count($messages);
 
             foreach (array_values($messages) as $index => $message) {
@@ -213,6 +214,9 @@ class ApiExceptionRenderer
         return ApiErrorResponse::make($error);
     }
 
+    /**
+     * @param  ApiError|ApiErrorResponse|array<array-key, ApiError>  $errors
+     */
     protected function normalize(ApiError|ApiErrorResponse|array $errors): ApiErrorResponse
     {
         return match (true) {
@@ -250,6 +254,9 @@ class ApiExceptionRenderer
         return $this->debug ?? (bool) config('app.debug');
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function debugMeta(Throwable $e): array
     {
         return [

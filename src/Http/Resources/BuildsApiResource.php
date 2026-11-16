@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Zhylon\ApiResources\Http\Resources;
 
 use Closure;
+use ReflectionClass;
+use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\MissingValue;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,36 +17,49 @@ use Illuminate\Http\Resources\PotentiallyMissing;
  */
 trait BuildsApiResource
 {
-    /** @var list<array{resource: JsonResource, document: array}> */
+    /**
+     * @var list<array{resource: JsonResource, document: array<string, mixed>}>
+     */
     protected array $apiIncluded = [];
 
+    /**
+     * @var array<string, mixed>|null
+     */
     protected ?array $apiDocument = null;
 
-    /** @var list<array|Closure> */
+    /**
+     * @var list<array<string, mixed>|Closure>
+     */
     protected array $apiTopLevelMeta = [];
 
+    /**
+     * @var array<string, string|array<string, mixed>|Closure|PotentiallyMissing|null>
+     */
     protected array $apiTopLevelLinks = [];
 
     public static function collection($resource): ApiResourceCollection
     {
-        return tap(new ApiResourceCollection($resource, static::class), function (ApiResourceCollection $collection) {
-            if (property_exists(static::class, 'preserveKeys')) {
-                $collection->preserveKeys = true === (new static([]))->preserveKeys;
-            }
-        });
+        $collection = new ApiResourceCollection($resource, static::class);
+
+        // Read the default value instead of instantiating the resource just for this flag.
+        $collection->preserveKeys = true === ((new ReflectionClass(static::class))->getDefaultProperties()['preserveKeys'] ?? false);
+
+        return $collection;
     }
 
     /**
      * @param  array<string, mixed>  $attributes  `Closure` values are only evaluated if the attribute is rendered
-     * @param  array<string, Relationship|array|Closure|MissingValue|null>  $relationships
-     * @param  array<string, string|array|Closure|MissingValue|null>  $links  merged after `self`; `null` links are dropped
+     * @param  bool|list<string>  $timestamps  `true` for `created_at`/`updated_at`, or a list of date attributes
+     * @param  array<string, Relationship|array<string, mixed>|Closure|MissingValue|null>  $relationships
+     * @param  array<string, string|array<string, mixed>|Closure|PotentiallyMissing|null>  $links  merged after `self`; `null` links are dropped
      * @param  array<string, mixed>|Closure  $meta  resource-level meta, e.g. permissions
+     * @return array<string, mixed>
      */
     protected function toApiResource(
         string $type,
         array $attributes,
         ?string $selfHref = null,
-        bool $timestamps = false,
+        bool|array $timestamps = false,
         string|int|null $id = null,
         array $relationships = [],
         array $links = [],
@@ -53,12 +68,14 @@ trait BuildsApiResource
         $this->apiIncluded = [];
         $fields = $this->sparseFieldsFor($type);
 
-        if ($timestamps) {
-            $attributes = [
-                ...$attributes,
-                'created_at' => fn () => $this->created_at?->toAtomString(),
-                'updated_at' => fn () => $this->updated_at?->toAtomString(),
-            ];
+        $timestamps = match ($timestamps) {
+            true    => ['created_at', 'updated_at'],
+            false   => [],
+            default => $timestamps,
+        };
+
+        foreach ($timestamps as $field) {
+            $attributes[$field] = fn () => $this->formatTimestamp($this->{$field});
         }
 
         $attributes = array_map(
@@ -67,7 +84,7 @@ trait BuildsApiResource
         );
 
         $payload = [
-            'id'         => $id ?? $this->resolveResourceId(),
+            'id'         => ResourceId::normalize($id ?? $this->resolveResourceId()),
             'type'       => $type,
             'attributes' => $attributes,
         ];
@@ -78,16 +95,25 @@ trait BuildsApiResource
             $payload['relationships'] = $relationships;
         }
 
-        $payload['links'] = [
-            'self' => ['href' => $selfHref],
-            ...Link::formatAll($links),
-        ];
+        $links = Link::formatAll(['self' => $selfHref, ...$links]);
+
+        if ([] !== $links) {
+            $payload['links'] = $links;
+        }
 
         if ([] !== ($meta = value($meta))) {
             $payload['meta'] = $meta;
         }
 
         return $this->apiDocument = $payload;
+    }
+
+    /**
+     * Formats a date attribute listed in `timestamps` (default: ISO-8601 / ATOM). Override for another format.
+     */
+    protected function formatTimestamp(mixed $value): mixed
+    {
+        return $value instanceof DateTimeInterface ? $value->format(DateTimeInterface::ATOM) : $value;
     }
 
     /**
@@ -129,7 +155,10 @@ trait BuildsApiResource
                 return null;
             }
 
-            if (! is_object($current) || ! method_exists($current, 'relationLoaded') || ! $current->relationLoaded($segment)) {
+            if (! is_object($current)
+                || ! method_exists($current, 'relationLoaded')
+                || ! method_exists($current, 'getRelation')
+                || ! $current->relationLoaded($segment)) {
                 return new MissingValue;
             }
 
@@ -140,7 +169,8 @@ trait BuildsApiResource
     }
 
     /**
-     * @param  array<string, Relationship|array|Closure|MissingValue|null>  $relationships
+     * @param  array<string, Relationship|array<string, mixed>|Closure|MissingValue|null>  $relationships
+     * @return array<string, array<string, mixed>>
      */
     protected function resolveRelationships(array $relationships): array
     {
@@ -197,6 +227,8 @@ trait BuildsApiResource
 
     /**
      * Adds top-level `meta` to the response. Merges across calls; a `Closure` is evaluated when rendered.
+     *
+     * @param  array<string, mixed>|Closure  $meta
      */
     public function withMeta(array|Closure $meta): static
     {
@@ -208,7 +240,7 @@ trait BuildsApiResource
     /**
      * Adds top-level `links` to the response (formatted as `{ href }`).
      *
-     * @param  array<string, string|array|Closure|MissingValue|null>  $links
+     * @param  array<string, string|array<string, mixed>|Closure|PotentiallyMissing|null>  $links
      */
     public function withLinks(array $links): static
     {
@@ -220,12 +252,18 @@ trait BuildsApiResource
     /**
      * Adds `included`, `links` and `meta` to the top level. If you override `with()` in your resource,
      * merge `$this->apiTopLevel($request)` into its result to keep them.
+     *
+     * @param  Request  $request
+     * @return array<string, mixed>
      */
     public function with($request)
     {
         return array_merge_recursive(parent::with($request), $this->apiTopLevel($request));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function apiTopLevel(Request $request): array
     {
         return TopLevel::members(
@@ -237,6 +275,8 @@ trait BuildsApiResource
 
     /**
      * The document rendered by the last `toApiResource()` call.
+     *
+     * @return array<string, mixed>|null
      */
     public function apiDocument(): ?array
     {
@@ -246,7 +286,7 @@ trait BuildsApiResource
     /**
      * The related resources rendered by the last `toApiResource()` call that belong into `included`.
      *
-     * @return list<array{resource: JsonResource, document: array}>
+     * @return list<array{resource: JsonResource, document: array<string, mixed>}>
      */
     public function apiIncludedResources(): array
     {

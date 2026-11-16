@@ -25,6 +25,34 @@ final class ResourceId
 {
     private static ?Closure $resolver = null;
 
+    private static bool $castToString = false;
+
+    /**
+     * Renders every resource and relationship id as a string (`7` → `"7"`), as JSON:API requires.
+     * Opt-in, because it changes the output for API clients.
+     */
+    public static function castToString(bool $enabled = true): void
+    {
+        self::$castToString = $enabled;
+    }
+
+    /**
+     * Applies output settings (`castToString()`) to an already resolved id.
+     */
+    public static function normalize(string|int|null $id): string|int|null
+    {
+        return self::$castToString && is_int($id) ? (string) $id : $id;
+    }
+
+    /**
+     * Resets all configuration (mainly for tests).
+     */
+    public static function flush(): void
+    {
+        self::$resolver = null;
+        self::$castToString = false;
+    }
+
     /**
      * Registers an app-wide id resolver, e.g. in a service provider:
      * `ResourceId::resolveUsing(fn ($resource) => $resource instanceof Model ? $resource->uuid : null)`.

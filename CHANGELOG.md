@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ResourceId` with the id resolution chain shared by resources and relationship identifiers, plus
   `ResourceId::resolveUsing()` for an app-wide resolver.
 - `Link` helper used for all links (`{ href }`, optionally with `meta`).
+- `timestamps` accepts a list of date attributes (e.g. `['created_at', 'deployed_at', 'deleted_at']`), formatted
+  by the overridable `formatTimestamp()`.
+- `ResourceId::castToString()` (opt-in) renders all resource and relationship ids as strings, as JSON:API requires.
+- PHPStan (Larastan, level 8) and 100 % test coverage, enforced in CI. CI now also runs PHP 8.3 and 8.5, a
+  lowest-dependencies job and a separate Pint/PHPStan job. Composer scripts `test-coverage`, `analyse`,
+  `lint` and `format`. Pest 4 is supported (Pest 3 is kept for PHP 8.2).
 - `Closure` values in `attributes` are evaluated when rendered (and skipped when filtered out by a
   sparse fieldset).
 - **Laravel Boost:** package guidelines (`resources/boost/guidelines/core.blade.php`) and the upgrade skill
@@ -46,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking (output):** without `selfHref`, resources no longer render `"links": { "self": { "href": null } }`.
+  `links` is left out entirely when no link is set.
 - **Breaking:** `ApiResourceCollection::toArray()` resolves its items eagerly, so `data` is a plain array
   instead of a collection of resources. Required to build `included` before the response is encoded.
 - **Breaking:** `BuildsApiResource` now defines `with()`, `withMeta()`, `withLinks()`, `apiTopLevel()`,
@@ -54,6 +62,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `Closure` attribute values are evaluated instead of being serialized as `{}`.
 - **Breaking:** `BuildsApiResource::resolveResourceId()` delegates to `ResourceId::resolve()`. Behaviour is
   unchanged for objects, but a `null` resource now resolves to a `null` id instead of throwing a `TypeError`.
+- `BuildsApiResource::collection()` reads `$preserveKeys` via reflection instead of instantiating the resource.
+
+### Fixed
+
+- `Relationship::relatedItems()` with a forced `many()` and a single model returned the model's attributes
+  instead of the model.
+- `withCount()` counted `0` for generator data, because rendering had already consumed the generator.
 
 ## [1.0.0] - 2026-09-09
 
