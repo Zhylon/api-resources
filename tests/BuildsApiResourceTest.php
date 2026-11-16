@@ -3,11 +3,15 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Zhylon\ApiResources\Http\Resources\ResourceId;
 use Zhylon\ApiResources\Tests\Fixtures\PlainModel;
 use Zhylon\ApiResources\Tests\Fixtures\HashingModel;
 use Zhylon\ApiResources\Tests\Fixtures\KeylessModel;
+use Zhylon\ApiResources\Tests\Fixtures\PostResource;
 use Zhylon\ApiResources\Tests\Fixtures\OrderResource;
 use Zhylon\ApiResources\Tests\Fixtures\SafeHashIdModel;
+use Zhylon\ApiResources\Http\Resources\BuildsApiResource;
 use Zhylon\ApiResources\Tests\Fixtures\OrderResourceWithoutTimestamps;
 
 it('builds the JSON:API-ish structure with timestamps', function () {
@@ -40,7 +44,7 @@ it('omits timestamps when disabled', function () {
     $array = (new OrderResourceWithoutTimestamps($model))->toArray(request());
 
     expect($array['attributes'])->toBe(['status' => 'paid'])
-        ->and($array['links']['self']['href'])->toBeNull();
+        ->and($array)->not->toHaveKey('links');
 });
 
 it('prefers safeHashID over the primary key', function () {
@@ -73,4 +77,86 @@ it('falls back to the id property when there is no getKey() either', function ()
     $array = (new OrderResource($model))->toArray(request());
 
     expect($array['id'])->toBe(9);
+});
+
+it('renders custom timestamp fields, null values and plain strings', function () {
+    $resource = new class(new PlainModel(id: 1, status: 'paid', created_at: Carbon::parse('2026-01-01T00:00:00Z'))) extends JsonResource
+    {
+        use BuildsApiResource;
+
+        public function toArray($request): array
+        {
+            $this->resource->deployed_at = new DateTimeImmutable('2026-02-03T04:05:06+02:00');
+            $this->resource->legacy_at = '2020-01-01';
+
+            return $this->toApiResource(
+                type: 'order',
+                attributes: ['status' => $this->status],
+                timestamps: ['created_at', 'updated_at', 'deployed_at', 'legacy_at'],
+            );
+        }
+    };
+
+    expect($resource->toArray(request())['attributes'])->toBe([
+        'status'      => 'paid',
+        'created_at'  => '2026-01-01T00:00:00+00:00',
+        'updated_at'  => null,
+        'deployed_at' => '2026-02-03T04:05:06+02:00',
+        'legacy_at'   => '2020-01-01',
+    ]);
+});
+
+it('allows overriding the timestamp format', function () {
+    $resource = new class(new PlainModel(id: 1, status: 'paid', created_at: Carbon::parse('2026-01-01T12:00:00Z'))) extends JsonResource
+    {
+        use BuildsApiResource;
+
+        public function toArray($request): array
+        {
+            return $this->toApiResource(type: 'order', attributes: [], timestamps: ['created_at']);
+        }
+
+        protected function formatTimestamp(mixed $value): mixed
+        {
+            return $value?->getTimestamp();
+        }
+    };
+
+    expect($resource->toArray(request())['attributes'])->toBe(['created_at' => 1767268800]);
+});
+
+it('casts ids to strings when enabled, for resources and relationship identifiers', function () {
+    ResourceId::castToString();
+
+    PostResource::using(fn () => [
+        'author' => $this->relationship('author', 'user', 5),
+        'tags'   => $this->relationship('tags', 'tag', [1, 'abc']),
+    ]);
+
+    $array = render(post());
+
+    expect($array['id'])->toBe('1')
+        ->and($array['relationships']['author']['data']['id'])->toBe('5')
+        ->and($array['relationships']['tags']['data'])->toBe([
+            ['id' => '1', 'type' => 'tag'],
+            ['id' => 'abc', 'type' => 'tag'],
+        ]);
+});
+
+it('keeps integer ids by default', function () {
+    expect(render(post())['id'])->toBe(1);
+});
+
+it('can keep the 1.x empty self link explicitly', function () {
+    $resource = new class(new PlainModel(id: 1, status: 'paid')) extends JsonResource
+    {
+        use BuildsApiResource;
+
+        public function toArray($request): array
+        {
+            return $this->toApiResource(type: 'order', attributes: [], links: ['self' => ['href' => null]]);
+        }
+    };
+
+    expect($resource->toArray(request())['links'])->toBe(['self' => ['href' => null]]);
 });

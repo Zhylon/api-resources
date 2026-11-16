@@ -3,11 +3,18 @@
     "description": "Opinionated helpers for building consistent, JSON:API-inspired API resource responses in Laravel.",
     "type": "library",
     "license": "MIT",
-    "keywords": ["zhylon", "laravel", "api", "resources", "json-api"],
+    "keywords": [
+        "zhylon",
+        "laravel",
+        "api",
+        "resources",
+        "json-api"
+    ],
     "homepage": "https://github.com/Zhylon/api-resources",
     "support": {
         "issues": "https://github.com/Zhylon/api-resources/issues",
-        "source": "https://github.com/Zhylon/api-resources"
+        "source": "https://github.com/Zhylon/api-resources",
+        "security": "https://github.com/Zhylon/api-resources/security/policy"
     },
     "authors": [
         {
@@ -23,9 +30,10 @@
         "illuminate/support": "^12.0 || ^13.0"
     },
     "require-dev": {
+        "larastan/larastan": "^3.0",
         "laravel/pint": "^1.30",
         "orchestra/testbench": "^10.0 || ^11.0",
-        "pestphp/pest": "^3.0"
+        "pestphp/pest": "^3.0 || ^4.0"
     },
     "autoload": {
         "psr-4": {
@@ -41,8 +49,13 @@
         ]
     },
     "scripts": {
-        "test": [
-            "./vendor/bin/pest tests/"
+        "test": "./vendor/bin/pest",
+        "test-coverage": "XDEBUG_MODE=coverage ./vendor/bin/pest --coverage --min=100",
+        "analyse": "./vendor/bin/phpstan analyse --memory-limit=1G",
+        "format": "./vendor/bin/pint",
+        "lint": [
+            "./vendor/bin/pint --test",
+            "@analyse"
         ]
     },
     "minimum-stability": "stable",
